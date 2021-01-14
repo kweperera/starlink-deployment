@@ -1,0 +1,134 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spacex
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: spacex
+  name: monitoring-deploy
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: monitoring-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: monitoring-app
+    spec:
+      containers:
+      - image: pererakwe/catalog-user:main
+        imagePullPolicy: Always
+        name: monitoring-app
+        ports:
+        - containerPort: 8089
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: spacex
+  name: monitoring-service
+spec:
+  ports:
+    - port: 8089
+      targetPort: 8089
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: monitoring-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: spacex
+  name: constellation-deploy
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: constellation-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: constellation-app
+    spec:
+      containers:
+      - image: pererakwe/location-user:main
+        imagePullPolicy: Always
+        name: constellation-app
+        ports:
+        - containerPort: 8087
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: spacex
+  name: constellation-service
+spec:
+  ports:
+    - port: 8087
+      targetPort: 8087
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: constellation-app
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ops-actions
+  namespace: default
+rules:
+  - apiGroups: ["", "apps"] # "" indicates the core API group
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: engineer-actions
+  namespace: default
+rules:
+  - apiGroups: [""] # "" indicates the core API group
+    resources: ["pods","services"]
+    verbs: ["get","list"]
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ops-performer
+  namespace: default
+subjects:
+- kind: User
+  name: ops-role
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: ops-actions
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: engineer-performer
+  namespace: default
+subjects:
+- kind: User
+  name: lukas-rbac-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: engineer-actions
+  apiGroup: rbac.authorization.k8s.io
+
+
+
+
+          
